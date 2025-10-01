@@ -10,7 +10,25 @@ import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
 import com.github.yarten.aimaclionplugin.MyBundle
 import com.github.yarten.aimaclionplugin.services.MyProjectService
+import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.Cell
+import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.tabbedPaneHeader
+import jdk.javadoc.internal.doclets.formats.html.markup.HtmlStyle.helpPage
+import javax.swing.DefaultComboBoxModel
+import javax.swing.DefaultSingleSelectionModel
 import javax.swing.JButton
+import kotlin.reflect.full.findAnnotation
+
+
+private val TABS_CREATORS = arrayOf(
+    ::homePage,
+    ::homePage,
+    ::homePage,
+    ::homePage,
+    ::testPanel,
+)
 
 
 class MyToolWindowFactory : ToolWindowFactory {
@@ -21,7 +39,9 @@ class MyToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val myToolWindow = MyToolWindow(toolWindow)
-        val content = ContentFactory.getInstance().createContent(myToolWindow.getContent(), null, false)
+        val content = ContentFactory.getInstance().createContent(
+            myToolWindow.getContent(project), null, false
+        )
         toolWindow.contentManager.addContent(content)
     }
 
@@ -31,7 +51,7 @@ class MyToolWindowFactory : ToolWindowFactory {
 
         private val service = toolWindow.project.service<MyProjectService>()
 
-        fun getContent() = JBPanel<JBPanel<*>>().apply {
+        fun getContent1() = JBPanel<JBPanel<*>>().apply {
             val label = JBLabel(MyBundle.message("randomLabel", "?"))
 
             add(label)
@@ -40,6 +60,31 @@ class MyToolWindowFactory : ToolWindowFactory {
                     label.text = MyBundle.message("randomLabel", service.getRandomNumber())
                 }
             })
+        }
+
+        fun getContent(project: Project) = panel {
+            val tabs: MutableList<Cell<*>> = mutableListOf()
+            row {
+                val header = tabbedPaneHeader(
+                    TABS_CREATORS.map { MyBundle.message(it.findAnnotation<TabItem>()!!.name) },
+                ).apply { component.selectedIndex = 0 }
+
+                header.component.model!!.addChangeListener {
+                    for ((index, tab) in tabs.withIndex()) {
+                        tab.visible(index == (it.source as DefaultSingleSelectionModel).selectedIndex)
+                    }
+                }
+            }
+
+            row {
+                for ((index, tabCreator) in TABS_CREATORS.withIndex()) {
+                    val tab = scrollCell(tabCreator.call(project))
+                        .visible(index == 0)
+                        .align(Align.FILL)
+                        .resizableColumn()
+                    tabs.add(tab)
+                }
+            }.resizableRow()
         }
     }
 }
