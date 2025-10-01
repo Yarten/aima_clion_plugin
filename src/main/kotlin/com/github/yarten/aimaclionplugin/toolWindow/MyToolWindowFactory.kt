@@ -21,7 +21,10 @@ import javax.swing.DefaultSingleSelectionModel
 import javax.swing.JButton
 import kotlin.reflect.full.findAnnotation
 
-
+/**
+ * 定义了本插件展示的所有子页面内容。
+ * 使用一个被 [TabItem] 修饰的、含有单个 [Project] 参数的函数来表示。
+ */
 private val TABS_CREATORS = arrayOf(
     ::homePage,
     ::homePage,
@@ -30,61 +33,41 @@ private val TABS_CREATORS = arrayOf(
     ::testPanel,
 )
 
-
 class MyToolWindowFactory : ToolWindowFactory {
-
-    init {
-        thisLogger().warn("Don't forget to remove all non-needed sample code files with their corresponding registration entries in `plugin.xml`.")
-    }
-
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val myToolWindow = MyToolWindow(toolWindow)
         val content = ContentFactory.getInstance().createContent(
-            myToolWindow.getContent(project), null, false
+            getContent(project), null, false
         )
         toolWindow.contentManager.addContent(content)
     }
 
     override fun shouldBeAvailable(project: Project) = true
 
-    class MyToolWindow(toolWindow: ToolWindow) {
+    /**
+     * 创建插件顶层展示画面，是一个 tabs，其中页面由 [TABS_CREATORS] 定义。
+     */
+    private fun getContent(project: Project) = panel {
+        val tabs: MutableList<Cell<*>> = mutableListOf()
+        row {
+            val header = tabbedPaneHeader(
+                TABS_CREATORS.map { MyBundle.message(it.findAnnotation<TabItem>()!!.name) },
+            ).apply { component.selectedIndex = 0 }
 
-        private val service = toolWindow.project.service<MyProjectService>()
-
-        fun getContent1() = JBPanel<JBPanel<*>>().apply {
-            val label = JBLabel(MyBundle.message("randomLabel", "?"))
-
-            add(label)
-            add(JButton(MyBundle.message("shuffle")).apply {
-                addActionListener {
-                    label.text = MyBundle.message("randomLabel", service.getRandomNumber())
-                }
-            })
-        }
-
-        fun getContent(project: Project) = panel {
-            val tabs: MutableList<Cell<*>> = mutableListOf()
-            row {
-                val header = tabbedPaneHeader(
-                    TABS_CREATORS.map { MyBundle.message(it.findAnnotation<TabItem>()!!.name) },
-                ).apply { component.selectedIndex = 0 }
-
-                header.component.model!!.addChangeListener {
-                    for ((index, tab) in tabs.withIndex()) {
-                        tab.visible(index == (it.source as DefaultSingleSelectionModel).selectedIndex)
-                    }
+            header.component.model!!.addChangeListener {
+                for ((index, tab) in tabs.withIndex()) {
+                    tab.visible(index == (it.source as DefaultSingleSelectionModel).selectedIndex)
                 }
             }
-
-            row {
-                for ((index, tabCreator) in TABS_CREATORS.withIndex()) {
-                    val tab = scrollCell(tabCreator.call(project))
-                        .visible(index == 0)
-                        .align(Align.FILL)
-                        .resizableColumn()
-                    tabs.add(tab)
-                }
-            }.resizableRow()
         }
+
+        row {
+            for ((index, tabCreator) in TABS_CREATORS.withIndex()) {
+                val tab = scrollCell(tabCreator.call(project))
+                    .visible(index == 0)
+                    .align(Align.FILL)
+                    .resizableColumn()
+                tabs.add(tab)
+            }
+        }.resizableRow()
     }
 }

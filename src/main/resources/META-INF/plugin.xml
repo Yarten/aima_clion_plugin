@@ -10,7 +10,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow factoryClass="com.github.yarten.aimaclionplugin.toolWindow.MyToolWindowFactory" id="aima"
-                    anchor="bottom"/>
+                    anchor="left"/>
         <postStartupActivity implementation="com.github.yarten.aimaclionplugin.startup.MyProjectActivity"/>
     </extensions>
 </idea-plugin>
