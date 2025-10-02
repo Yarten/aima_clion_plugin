@@ -27,9 +27,7 @@ import kotlin.reflect.full.findAnnotation
  */
 private val TABS_CREATORS = arrayOf(
     ::homePage,
-    ::homePage,
-    ::homePage,
-    ::homePage,
+    ::imageLists,
     ::testPanel,
 )
 
@@ -49,20 +47,20 @@ class MyToolWindowFactory : ToolWindowFactory {
     private fun getContent(project: Project) = panel {
         val tabs: MutableList<Cell<*>> = mutableListOf()
         row {
-            val header = tabbedPaneHeader(
-                TABS_CREATORS.map { MyBundle.message(it.findAnnotation<TabItem>()!!.name) },
-            ).apply { component.selectedIndex = 0 }
-
-            header.component.model!!.addChangeListener {
-                for ((index, tab) in tabs.withIndex()) {
-                    tab.visible(index == (it.source as DefaultSingleSelectionModel).selectedIndex)
+            tabbedPaneHeader(TABS_CREATORS.map { MyBundle.message(it.findAnnotation<TabItem>()!!.name) })
+                .apply { component.selectedIndex = 0 }
+                .applyToComponent {
+                    model!!.addChangeListener {
+                        for ((index, tab) in tabs.withIndex()) {
+                            tab.visible(index == (it.source as DefaultSingleSelectionModel).selectedIndex)
+                        }
+                    }
                 }
-            }
         }
 
         row {
             for ((index, tabCreator) in TABS_CREATORS.withIndex()) {
-                val tab = scrollCell(tabCreator.call(project))
+                val tab = cell(tabCreator.call(project))
                     .visible(index == 0)
                     .align(Align.FILL)
                     .resizableColumn()
